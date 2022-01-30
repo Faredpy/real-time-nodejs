@@ -14,10 +14,16 @@ const WebSock = () => {
 
         socket.current.onopen = () => {
             setConnected(true);
-            console.log('Подключение установлено');
+            const message = {
+                event: 'connection',
+                username,
+                id: nanoid()
+            }
+            socket.current.send(JSON.stringify(message));
         }
-        socket.current.onmessage = () => {
-
+        socket.current.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            setMessages(prev => [message, ...prev]);
         }
         socket.current.onclose = () => {
             console.log('Socket закрыт');
@@ -28,10 +34,13 @@ const WebSock = () => {
     }
 
     const sendMessage = async () => {
-        const response = await axios.post('http://localhost:3001/new-messages', {
+        const message = {
+            username,
             message: value,
-            id: nanoid()
-        })
+            id: nanoid(),
+            event: 'message'
+        }
+        socket.current.send(JSON.stringify(message));
         setValue('');
     }
 
@@ -55,8 +64,11 @@ const WebSock = () => {
                 </div>
                 <div className="messages">
                     {messages.map(mess =>
-                        <div className="message" key={mess.id}>
-                            {mess.message}
+                        <div key={mess.id}>
+                            {mess.event === 'connection'
+                                ? <div className="connection_message">Пользователь {mess.username} подключился</div>
+                                : <div className="message">{mess.username}. {mess.message}</div>
+                            }
                         </div>
                     )}
                 </div>
